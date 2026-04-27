@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>PHARR CITY BUILDER</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Barlow+Condensed:wght@700;800;900&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#0D1D41;--panel:#0E1825;--bg2:#0A1221;
+  --gold:#F5C518;--green:#2D6A1F;--green2:#3A8A28;--grass:#4CAF50;--grass2:#388E3C;
+  --dirt:#8B6914;--dirt2:#A0791A;
+  --sky:#1565C0;--sky2:#1976D2;
+  --built:#1B3A6B;--built2:#243E72;
+  --red:#FF1744;--amber:#FF8F00;--lime:#00E676;
+  --road:#2A2A3A;--road2:#1A1A28;--stripe:#F5C518;
+  --c0:#4CAF50;--c1:#FF8F00;--c2:#5C85D6;--c3:#8D6E63;
+  --tag:#FF1744;
+}
+html,body{height:100%;background:var(--navy);color:#fff;font-family:'Barlow',sans-serif;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;
+  background-image:radial-gradient(rgba(255,255,255,.03) 1px,transparent 1px);
+  background-size:18px 18px;z-index:0;}
+.screen{display:none;position:relative;z-index:1;min-height:100vh;}
+.screen.active{display:flex;flex-direction:column;}
+
+/* ── TITLE ── */
+#s-title{align-items:center;justify-content:center;text-align:center;padding:16px;gap:10px;}
+.title-dept{font-family:'Press Start 2P',monospace;font-size:clamp(6px,1.2vw,9px);
+  color:var(--grass);letter-spacing:.2em;margin-bottom:2px;}
+.title-main{font-family:'Press Start 2P',monospace;font-size:clamp(14px,3.5vw,34px);
+  color:var(--gold);text-shadow:0 0 16px rgba(245,197,24,.4),0 4px 0 #6B5000;
+  letter-spacing:.04em;animation:buildGlow 2.5s ease-in-out infinite;}
+@keyframes buildGlow{0%,100%{text-shadow:0 0 16px rgba(245,197,24,.35),0 4px 0 #6B5000;}
+  50%{text-shadow:0 0 32px rgba(245,197,24,.65),0 4px 0 #6B5000;}}
+.title-sub{font-family:'Press Start 2P',monospace;font-size:clamp(8px,1.8vw,14px);
+  color:var(--grass);letter-spacing:.1em;animation:blink 1.4s step-end infinite;}
+@keyframes blink{50%{opacity:0;}}
+.chars-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;width:100%;max-width:760px;}
+.char-card{flex:1;min-width:150px;max-width:180px;border:3px solid rgba(255,255,255,.13);
+  background:var(--bg2);padding:12px 8px;text-align:center;transition:border-color .15s;}
+.char-emoji{font-size:36px;display:block;margin:0 auto 6px;text-align:center;}
+.char-pxname{font-family:'Press Start 2P',monospace;font-size:9px;letter-spacing:.05em;margin-bottom:4px;}
+.char-role{font-size:11px;color:rgba(255,255,255,.38);margin-bottom:8px;}
+.px-input{width:100%;background:rgba(0,0,0,.4);border:3px solid rgba(255,255,255,.16);
+  color:#fff;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;
+  padding:6px 7px;text-align:center;outline:none;}
+.px-input:focus{border-color:var(--gold);}
+.px-input::placeholder{color:rgba(255,255,255,.22);}
+.rules-box{border:3px dashed rgba(255,255,255,.1);padding:10px 18px;
+  max-width:640px;font-size:11px;color:rgba(255,255,255,.48);line-height:1.8;text-align:left;}
+.rules-box b{color:var(--gold);}
+.deploy-btn{border:3px solid var(--gold);color:var(--gold);background:transparent;
+  font-family:'Press Start 2P',monospace;font-size:11px;padding:12px 30px;cursor:pointer;
+  text-shadow:0 0 8px rgba(245,197,24,.5);box-shadow:0 0 14px rgba(245,197,24,.18);
+  letter-spacing:.06em;transition:all .1s;}
+.deploy-btn:active{transform:translate(2px,2px);}
+
+/* ── GAME ── */
+#s-game{flex-direction:column;overflow:hidden;}
+
+/* HUD */
+.hud{background:var(--bg2);border-bottom:3px solid rgba(255,255,255,.06);
+  padding:5px 10px;display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.hud-title{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--gold);white-space:nowrap;}
+.hud-scores{display:flex;gap:4px;flex:1;justify-content:center;}
+.hs{border:3px solid rgba(255,255,255,.1);background:rgba(0,0,0,.3);
+  padding:3px 7px;text-align:center;min-width:78px;transition:border-color .2s;}
+.hs.active{animation:activeHud .5s ease-in-out infinite alternate;}
+@keyframes activeHud{from{border-color:rgba(255,255,255,.12);}to{border-color:rgba(255,255,255,.7);box-shadow:0 0 9px rgba(255,255,255,.12);}}
+.hs-em{font-size:12px;}.hs-nm{font-size:8px;font-weight:700;color:rgba(255,255,255,.5);}
+.hs-pt{font-family:'Press Start 2P',monospace;font-size:11px;}
+.px-badge{border:3px solid;padding:3px 7px;font-family:'Press Start 2P',monospace;font-size:7px;white-space:nowrap;}
+.combo-d{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gold);
+  border:3px solid var(--gold);padding:3px 6px;display:none;}
+.combo-d.show{display:block;}
+
+/* GAME BODY */
+.game-body{flex:1;display:grid;grid-template-columns:1fr 300px;min-height:0;}
+
+/* ── CITY PANEL ── */
+.city-panel{display:flex;flex-direction:column;padding:8px 10px;gap:6px;overflow:hidden;position:relative;}
+.city-label{font-family:'Press Start 2P',monospace;font-size:6px;color:rgba(255,255,255,.18);letter-spacing:.1em;}
+
+/* Sky bar */
+.sky-bar{
+  background:linear-gradient(180deg,#0D47A1 0%,#1976D2 50%,#90CAF9 100%);
+  border:3px solid rgba(255,255,255,.08);
+  border-bottom:none;
+  height:clamp(18px,2.5vw,28px);
+  flex-shrink:0;
+  border-radius:4px 4px 0 0;
+  position:relative;
+  overflow:hidden;
+}
+/* clouds */
+.sky-bar::before{content:'☁ ☁  ☁';position:absolute;top:3px;left:10%;
+  font-size:10px;color:rgba(255,255,255,.4);letter-spacing:8px;animation:cloudDrift 20s linear infinite;}
+@keyframes cloudDrift{from{transform:translateX(0);}to{transform:translateX(40px);}}
+
+/* City grid wrapper */
+.city-wrap{position:relative;flex:1;display:flex;flex-direction:column;}
+
+/* Road grid background */
+.city-grid-bg{
+  background:var(--road);
+  border:3px solid rgba(255,255,255,.06);
+  flex:1;
+  position:relative;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  grid-template-rows:repeat(4,1fr);
+  gap:0;
+}
+/* road lines between tiles */
+.city-grid-bg::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:
+    repeating-linear-gradient(90deg,transparent 0,transparent calc(20% - 3px),rgba(245,197,24,.12) calc(20% - 3px),rgba(245,197,24,.12) 20%),
+    repeating-linear-gradient(0deg,transparent 0,transparent calc(25% - 3px),rgba(245,197,24,.12) calc(25% - 3px),rgba(245,197,24,.12) 25%);}
+
+/* sidewalk strip at bottom */
+.sidewalk{
+  background:var(--road2);
+  border:3px solid rgba(255,255,255,.06);
+  border-top:none;
+  height:clamp(16px,2.5vw,24px);
+  flex-shrink:0;
+  border-radius:0 0 4px 4px;
+  position:relative;
+}
+.sidewalk::before{content:'';position:absolute;top:4px;left:0;right:0;height:3px;
+  background:repeating-linear-gradient(90deg,var(--stripe) 0,var(--stripe) 12px,transparent 12px,transparent 28px);
+  opacity:.2;}
+
+/* CITY TILE */
+.city-tile{
+  position:relative;
+  background:var(--grass);
+  border:2px solid rgba(0,0,0,.2);
+  cursor:pointer;
+  transition:background .2s,border-color .2s;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  overflow:hidden;
+  min-height:0;
+}
+/* grass texture */
+.city-tile.empty::before{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(45deg,rgba(0,0,0,.04) 0,rgba(0,0,0,.04) 2px,transparent 2px,transparent 8px);
+  pointer-events:none;}
+/* grass shimmer on hover */
+.city-tile.empty:hover{background:#5DBF61;border-color:rgba(255,255,255,.35);}
+.city-tile.empty.clickable{animation:grassPulse .8s ease-in-out infinite alternate;}
+@keyframes grassPulse{from{border-color:rgba(76,175,80,.4);}to{border-color:rgba(76,175,80,.9);box-shadow:inset 0 0 12px rgba(76,175,80,.2);}}
+
+/* built tile */
+.city-tile.built{background:var(--built);border-color:rgba(255,255,255,.12);cursor:default;}
+.city-tile.built:hover{background:var(--built);}
+
+/* red-tagged tile */
+.city-tile.tagged{background:rgba(255,23,68,.12);border-color:rgba(255,23,68,.6);
+  animation:tagFlash .6s ease-in-out infinite alternate;cursor:pointer;}
+.city-tile.tagged.clickable{cursor:pointer;}
+@keyframes tagFlash{from{border-color:rgba(255,23,68,.4);}to{border-color:rgba(255,23,68,.9);box-shadow:inset 0 0 10px rgba(255,23,68,.15);}}
+
+/* under construction */
+.city-tile.constructing{background:var(--dirt);border-color:rgba(160,121,26,.6);cursor:default;}
+.city-tile.constructing::after{content:'🔨';position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);font-size:18px;animation:hammer .4s ease-in-out infinite alternate;}
+@keyframes hammer{from{transform:translate(-50%,-50%) rotate(-20deg);}to{transform:translate(-50%,-50%) rotate(10deg);}}
+
+.tile-icon{font-size:clamp(12px,1.8vw,20px);line-height:1;position:relative;z-index:2;margin-bottom:1px;}
+.tile-name{font-size:clamp(4px,.6vw,7px);color:rgba(255,255,255,.55);font-weight:700;
+  line-height:1.2;text-align:center;position:relative;z-index:2;padding:0 1px 2px;word-break:break-word;}
+.tile-vip{position:absolute;top:1px;left:1px;font-size:9px;z-index:3;}
+.tile-tag{position:absolute;top:1px;right:1px;font-size:9px;z-index:3;
+  animation:tagBounce .4s ease-in-out infinite alternate;}
+@keyframes tagBounce{from{transform:translateY(0);}to{transform:translateY(-2px);}}
+.tile-check{position:absolute;top:1px;right:1px;font-size:9px;z-index:3;}
+
+/* building shimmer on spawn */
+.city-tile.just-built{animation:buildPop .5s cubic-bezier(.34,1.56,.64,1);}
+@keyframes buildPop{0%{transform:scale(.5);opacity:0;}60%{transform:scale(1.08);}100%{transform:scale(1);opacity:1;}}
+
+/* construction progress bar */
+.tile-progress{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(0,0,0,.3);}
+.tile-progress-fill{height:100%;background:var(--gold);border-radius:0;}
+
+/* canvas */
+#build-canvas{position:absolute;inset:0;pointer-events:none;z-index:10;}
+
+/* ── Q PANEL ── */
+.right-panel{border-left:3px solid rgba(255,255,255,.05);background:var(--panel);
+  display:flex;flex-direction:column;overflow:hidden;}
+.q-panel{flex:1;padding:9px;display:flex;flex-direction:column;gap:7px;overflow-y:auto;}
+.cp-banner{border:3px solid rgba(255,255,255,.1);padding:7px 9px;display:flex;align-items:center;gap:7px;}
+.cp-em{font-size:20px;}.cp-nm{font-family:'Press Start 2P',monospace;font-size:9px;letter-spacing:.04em;}
+.cp-role{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;}
+.timer-row{display:flex;align-items:center;gap:5px;}
+.timer-track{flex:1;height:9px;background:rgba(0,0,0,.5);border:3px solid rgba(255,255,255,.09);}
+.timer-fill{height:100%;transition:width .9s linear;}
+.timer-num{font-family:'Press Start 2P',monospace;font-size:11px;min-width:20px;text-align:right;}
+.q-cat{font-family:'Press Start 2P',monospace;font-size:6px;letter-spacing:.09em;
+  opacity:.62;padding:2px 5px;border:3px solid rgba(255,255,255,.1);display:inline-block;}
+.q-text{font-family:'Barlow Condensed',sans-serif;font-size:clamp(13px,1.6vw,16px);
+  font-weight:700;line-height:1.45;color:#fff;min-height:46px;margin-top:5px;}
+.opts-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.opt-btn{border:3px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);
+  color:#fff;font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;
+  padding:8px 6px;text-align:left;cursor:pointer;line-height:1.35;transition:all .08s;}
+.opt-btn:hover:not(:disabled){background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.36);}
+.opt-btn:disabled{cursor:not-allowed;}
+.opt-btn.correct{background:rgba(0,230,118,.16);border-color:var(--lime);color:#A5D6A7;}
+.opt-btn.wrong{background:rgba(255,23,68,.16);border-color:var(--red);color:#FF8A80;}
+.opt-letter{display:inline-block;width:14px;height:14px;background:rgba(255,255,255,.09);
+  font-size:7px;font-weight:900;text-align:center;line-height:14px;margin-right:4px;}
+.feedback-box{border:3px solid;padding:7px 9px;font-size:11px;line-height:1.55;display:none;}
+.feedback-box.show{display:block;}
+.feedback-box.ok{border-color:var(--lime);background:rgba(0,230,118,.07);color:#C8E6C9;}
+.feedback-box.no{border-color:var(--red);background:rgba(255,23,68,.07);color:#FFCDD2;}
+.feedback-box.fix{border-color:var(--amber);background:rgba(255,143,0,.07);color:#FFE0B2;}
+.feedback-box strong{font-family:'Press Start 2P',monospace;font-size:7px;display:block;margin-bottom:4px;}
+.build-prompt{border:3px solid var(--gold);background:rgba(245,197,24,.08);
+  padding:7px 9px;font-family:'Press Start 2P',monospace;font-size:7px;
+  color:var(--gold);text-align:center;display:none;
+  animation:buildPromptPulse .7s ease-in-out infinite alternate;}
+.build-prompt.show{display:block;}
+@keyframes buildPromptPulse{from{opacity:.75;}to{opacity:1;box-shadow:0 0 10px rgba(245,197,24,.2);}}
+.fix-prompt{border:3px solid var(--amber);background:rgba(255,143,0,.08);
+  padding:7px 9px;font-family:'Press Start 2P',monospace;font-size:7px;
+  color:var(--amber);text-align:center;display:none;
+  animation:fixPulse .6s ease-in-out infinite alternate;}
+.fix-prompt.show{display:block;}
+@keyframes fixPulse{from{opacity:.7;}to{opacity:1;}}
+.next-wrap{justify-content:center;display:none;}
+.next-wrap.show{display:flex;}
+.next-btn{border:3px solid var(--gold);color:var(--gold);background:transparent;
+  font-family:'Press Start 2P',monospace;font-size:9px;padding:9px 20px;cursor:pointer;letter-spacing:.05em;}
+.next-btn:active{transform:translate(2px,2px);}
+
+/* progress bar under city */
+.city-progress-wrap{flex-shrink:0;}
+.city-progress-track{height:6px;background:rgba(0,0,0,.4);border:2px solid rgba(255,255,255,.06);}
+.city-progress-fill{height:100%;background:linear-gradient(90deg,var(--green2),var(--gold));transition:width .4s;}
+.city-progress-label{font-family:'Press Start 2P',monospace;font-size:6px;color:rgba(255,255,255,.3);
+  text-align:right;padding:2px 2px 0;letter-spacing:.06em;}
+
+/* ── RESULT ── */
+#s-result{align-items:center;justify-content:center;text-align:center;padding:20px;gap:12px;}
+.r-headline{font-family:'Press Start 2P',monospace;font-size:clamp(14px,4vw,30px);letter-spacing:.04em;}
+.r-headline.win{color:var(--gold);text-shadow:0 0 28px var(--gold),0 4px 0 #6B5000;}
+.r-headline.lose{color:var(--red);text-shadow:0 0 28px var(--red),0 4px 0 #800;}
+.podium{display:flex;align-items:flex-end;gap:8px;justify-content:center;}
+.pod{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.pod-em{font-size:28px;}.pod-nm{font-family:'Press Start 2P',monospace;font-size:7px;max-width:86px;line-height:1.5;}
+.pod-sc{font-size:11px;color:rgba(255,255,255,.5);}
+.pod-blk{border:3px solid rgba(255,255,255,.28);display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;}
+.pod-blk.p1{background:var(--gold);color:#000;width:88px;height:72px;font-size:15px;}
+.pod-blk.p2{background:#78909C;color:#fff;width:74px;height:58px;font-size:12px;}
+.pod-blk.p3{background:#8D6E63;color:#fff;width:66px;height:46px;font-size:10px;}
+.pod-blk.p4{background:#546E7A;color:#fff;width:60px;height:38px;font-size:8px;}
+.stats-row{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;}
+.stat-px{border:3px solid rgba(255,255,255,.12);background:var(--bg2);padding:8px 13px;text-align:center;}
+.stat-val{font-family:'Press Start 2P',monospace;font-size:14px;color:var(--gold);display:block;margin-bottom:4px;}
+.stat-lbl{font-size:9px;color:rgba(255,255,255,.36);letter-spacing:.06em;text-transform:uppercase;}
+.r-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;}
+
+/* OVERLAYS */
+#screen-flash{position:fixed;inset:0;pointer-events:none;z-index:998;opacity:0;transition:opacity .1s;}
+@keyframes floatScore{from{transform:translateX(-50%) translateY(0);opacity:1;}to{transform:translateX(-50%) translateY(-48px);opacity:0;}}
+@keyframes comboZap{0%{transform:translateX(-50%) scale(.5);}60%{transform:translateX(-50%) scale(1.15);}100%{transform:translateX(-50%) scale(1);}}
+@keyframes screenShake{0%,100%{transform:none;}25%{transform:translate(-3px,2px);}50%{transform:translate(3px,-2px);}75%{transform:translate(-2px,3px);}}
+@keyframes constructionPop{0%{opacity:0;transform:translateY(-10px) scale(.8);}100%{opacity:1;transform:none;}}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .game-body{grid-template-columns:1fr;grid-template-rows:48vh 52vh;}
+  .city-panel{grid-row:2;order:2;padding:4px 6px;gap:3px;}
+  .right-panel{grid-row:1;order:1;border-left:none;border-bottom:3px solid rgba(255,255,255,.05);max-height:48vh;overflow-y:auto;}
+  .city-label{display:none;}
+  .chars-row{gap:6px;}
+  .char-card{min-width:120px;}
+  .q-panel{gap:5px;padding:7px;}
+  .q-text{font-size:13px;min-height:36px;}
+}
+@media(max-width:480px){
+  .game-body{grid-template-rows:45vh 55vh;}
+  .right-panel{max-height:45vh;}
+  .hud-title{display:none;}
+  .title-main{font-size:clamp(13px,5vw,26px);}
+}
+</style>
+</head>
+<body>
+<div id="screen-flash"></div>
+
+<!-- TITLE -->
+<div class="screen active" id="s-title">
+  <div class="title-dept">BUILDING & CODE · DEV SERVICES · PUBLIC WORKS · UTILITIES</div>
+  <div class="title-main">PHARR CITY BUILDER</div>
+  <div class="title-sub">🏗️ BUILD THE CITY! 🏗️</div>
+  <div style="font-size:9px;color:rgba(255,255,255,.26);letter-spacing:.08em;">CITY OF PHARR · OFFICE OF STRATEGIC EXCELLENCE</div>
+
+  <div class="chars-row">
+    <div class="char-card" style="border-color:var(--c0)44">
+      <img src="images/cody.png" class="char-emoji" style="width: 120px;height: 120px;object-fit: contain;display: block;margin: 0 auto;">
+      <div class="char-pxname" style="color:var(--c0)">CODY</div>
+      <div class="char-role">Building & Code</div>
+      <input class="px-input" id="pname-0" placeholder="PLAYER 1" maxlength="10">
+    </div>
+    <div class="char-card" style="border-color:var(--c1)44">
+      <img src="images/buddy.png" class="char-emoji" style="width: 120px;height: 120px;object-fit: contain;display: block;margin: 0 auto;">
+      <div class="char-pxname" style="color:var(--c1)">BUDDY</div>
+      <div class="char-role">Development Services</div>
+      <input class="px-input" id="pname-1" placeholder="PLAYER 2" maxlength="10">
+    </div>
+    <div class="char-card" style="border-color:var(--c2)44">
+      <img src="images/rigs.png" class="char-emoji" style="width: 120px;height: 120px;object-fit: contain;display: block;margin: 0 auto;">
+      <div class="char-pxname" style="color:var(--c2)">RIGS</div>
+      <div class="char-role">Engineering/Utilities</div>
+      <input class="px-input" id="pname-2" placeholder="PLAYER 3" maxlength="10">
+    </div>
+    <div class="char-card" style="border-color:var(--c3)44">
+      <img src="images/dug.png" class="char-emoji" style="width: 120px;height: 120px;object-fit: contain;display: block;margin: 0 auto;">
+      <div class="char-pxname" style="color:var(--c3)">DUG</div>
+      <div class="char-role">Maintenance/Public Works</div>
+      <input class="px-input" id="pname-3" placeholder="PLAYER 4" maxlength="10">
+    </div>
+  </div>
+
+  <button class="deploy-btn" onclick="startGame()">🏗️ BREAK GROUND!</button>
+
+  <div class="rules-box">
+    <b>MISSION:</b> The City of Pharr lot is empty — build all 20 departments to complete City Hall!<br><br>
+    <b>HOW TO PLAY:</b> Answer a Pharr Way question on your turn. Correct → click any empty lot to build a department. Wrong → an existing building gets red-tagged by Building & Code and must be re-approved.<br>
+    Build combos for 1.5x · 2x · 3x score multipliers. VIP buildings (⭐) earn bonus points. Fill every lot to win!
+  </div>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="s-game">
+  <div class="hud" id="hud">
+    <div class="hud-title">PHARR BUILDER</div>
+    <div class="hud-scores" id="hud-scores"></div>
+    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+      <div class="combo-d" id="combo-d">x1</div>
+      <div class="px-badge" id="built-badge" style="border-color:var(--gold);color:var(--gold)">🏗️ 0/20</div>
+      <div class="px-badge" id="round-badge" style="border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.38)">R1/20</div>
+    </div>
+  </div>
+
+  <div class="game-body">
+    <!-- CITY PANEL -->
+    <div class="city-panel">
+      <div class="city-label">CITY OF PHARR — EMPTY LOT</div>
+      <div class="city-wrap">
+        <div class="sky-bar"></div>
+        <div class="city-grid-bg" id="city-grid"></div>
+        <div class="sidewalk"></div>
+        <canvas id="build-canvas"></canvas>
+      </div>
+      <div class="city-progress-wrap">
+        <div class="city-progress-track"><div class="city-progress-fill" id="progress-fill" style="width:0%"></div></div>
+        <div class="city-progress-label" id="progress-label">0 / 20 BUILT</div>
+      </div>
+    </div>
+
+    <!-- Q PANEL -->
+    <div class="right-panel">
+      <div class="q-panel">
+        <div class="cp-banner" id="cp-banner"></div>
+        <div class="timer-row">
+          <div class="timer-track"><div class="timer-fill" id="timer-fill" style="width:100%;background:var(--lime)"></div></div>
+          <div class="timer-num" id="timer-num">25</div>
+        </div>
+        <div>
+          <div class="q-cat" id="q-cat">CATEGORY</div>
+          <div class="q-text" id="q-text" style="margin-top:5px">Get ready, crew...</div>
+        </div>
+        <div class="opts-grid" id="opts-grid"></div>
+        <div class="feedback-box" id="feedback-box"></div>
+        <div class="build-prompt" id="build-prompt">🏗️ CLICK AN EMPTY LOT TO BUILD!</div>
+        <div class="fix-prompt" id="fix-prompt">⚠ CLICK A RED-TAGGED BUILDING TO FIX IT!</div>
+        <div class="next-wrap" id="next-wrap">
+          <button class="next-btn" onclick="nextTurn()">NEXT TURN ></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="s-result">
+  <div class="r-headline" id="r-headline"></div>
+  <div style="font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.08em;margin-top:4px;" id="r-sub"></div>
+  <div class="podium" id="r-podium"></div>
+  <div class="stats-row" id="r-stats"></div>
+  <div class="r-actions">
+    <button class="next-btn" onclick="goTitle()">NEW CITY</button>
+    <button class="next-btn" style="border-color:var(--gold);color:var(--gold)" onclick="window.location.href='https://torres1030.github.io/pharr-way-activity-hub/'">HUB</button>
+  </div>
+</div>
+
+<script>
+var CHARS=[
+  {n:'CODY',e:'<img src="images/cody.png" style="width:100px;height:100px;object-fit:contain;vertical-align:middle">',role:'Building & Code',    color:'#4CAF50'},
+  {n:'BUDDY', e:'<img src="images/buddy.png" style="width:100px;height:100px;object-fit:contain;vertical-align:middle">',role:'Development Services',  color:'#FF8F00'},
+  {n:'RIGS', e:'<img src="images/rigs.png" style="width:100px;height:100px;object-fit:contain;vertical-align:middle">',role:'Engineering/Utilities',     color:'#5C85D6'},
+  {n:'DUG',  e:'<img src="images/dug.png" style="width:100px;height:100px;object-fit:contain;vertical-align:middle">',role:'Maintenance/Public Works',color:'#8D6E63'}
+];
+
+var BLDS=[
+  {n:'City Hall',      e:'🏛️',vip:true}, {n:'Fire Station HQ',  e:'🚒',vip:true},
+  {n:'Police HQ',      e:'🚔',vip:true}, {n:'Library',       e:'📚',vip:false},
+  {n:'Parks & Rec',    e:'🌳',vip:false},{n:'Public Utilities',e:'💧',vip:false},
+  {n:'Finance',        e:'💰',vip:false},{n:'IT',     e:'💻',vip:false},
+  {n:'HR',     e:'👥',vip:false},{n:'Public Works',   e:'🔧',vip:false},
+  {n:'Building & Code',e:'🏗️',vip:false},{n:'Municipal Court',    e:'⚖️',vip:false},
+  {n:'Spec. Events',   e:'🎪',vip:false},{n:'EMS Station',    e:'🚑',vip:true},
+  {n:'Media', e:'📡',vip:false},{n:'Dev. Services',  e:'🏢',vip:false},
+  {n:'Grants',  e:'📋',vip:false},{n:'Purchasing',     e:'🛒',vip:false},
+  {n:'Pharr Bridge',   e:'🌉',vip:true}, {n:'Public Health',  e:'🏥',vip:true}
+];
+
+// Shuffle building assignment order so each game feels different
+var BUILD_ORDER = [];
+
+var QS=[
+  // PHARR WAY — PRIDE
+  {c:'PHARR WAY — PRIDE',q:'What does PRIDE stand for at the City of Pharr?',o:['Progress, Results, Innovation, Discipline, Excellence','Professionalism, Respect, Integrity, Discipline, Ethics','People, Resilience, Integrity, Dedication, Equity','Professionalism, Results, Innovation, Discipline, Empathy'],a:1,w:'PRIDE = Professionalism, Respect, Integrity, Discipline, Ethics — the five values every Pharr employee lives daily.'},
+  {c:'PHARR WAY — PRIDE',q:'Which PRIDE value means doing the right thing even when no one is watching?',o:['Professionalism','Respect','Integrity','Discipline'],a:2,w:'Integrity — being honest and ethical at all times. The cornerstone of public service.'},
+  {c:'PHARR WAY — PRIDE',q:'Discipline in PRIDE primarily means:',o:['Strict attendance rules','Consistent high standards every day regardless of who is watching','Following orders without question','Punishing poor performance'],a:1,w:'Discipline is the daily commitment to the same high standard — not because you have to, but because it defines who you are.'},
+  {c:'PHARR WAY — PRIDE',q:'The R in PRIDE stands for:',o:['Results','Responsibility','Resilience','Respect'],a:3,w:'Respect — for residents, for colleagues, and for the community served in every interaction.'},
+  {c:'PHARR WAY — PRIDE',q:'"Excellence Every Day" means:',o:['Winning awards annually','Delivering your best on every task, every interaction, every day','Setting goals once a year','Being better than neighboring cities'],a:1,w:'"Excellence Every Day" is not a slogan — it is Pharr\'s operating standard applied to every permit, every inspection, every resident interaction.'},
+  {c:'PHARR WAY — PRIDE',q:'Which PRIDE value is most critical in Building & Code enforcement?',o:['Professionalism only','Integrity and Ethics — being fair and consistent with every property','Discipline only','Respect only'],a:1,w:'Integrity and Ethics ensure every property owner is treated fairly and consistently — no exceptions, no favoritism. Trust in government depends on it.'},
+  {c:'PHARR WAY — PRIDE',q:'The Pharr Way is best described as:',o:['A once-a-year training event','The cultural foundation and daily operating standard every Pharr employee lives','A set of rules only senior leaders follow','An awards program for top performers'],a:1,w:'The Pharr Way is how every employee shows up — through PRIDE values, STEP improvement, KPI accountability, and service excellence — every single day.'},
+  // PHARR WAY — STEP
+  {c:'PHARR WAY — STEP',q:'What does STEP stand for?',o:['Strategy, Training, Excellence, Progress','Study, Track, Evaluate, Propose','Standards, Teams, Execution, Plans','System, Test, Evaluate, Proceed'],a:1,w:'Study the problem · Track the current process · Evaluate root cause · Propose a solution.'},
+  {c:'PHARR WAY — STEP',q:'In STEP, the Study phase focuses on:',o:['Writing the final solution','Defining the problem and establishing a clear problem statement','Presenting results to the city commission','Celebrating the improvement'],a:1,w:'S = Study the Problem. Define what the problem is, who is affected, and what success looks like before anything else.'},
+  {c:'PHARR WAY — STEP',q:'In the STEP Track phase, you are primarily:',o:['Writing the solution proposal','Implementing the fix','Collecting baseline data and mapping the current process','Setting next year\'s budget'],a:2,w:'T = Track the Current Process. Gather data, establish a baseline, understand how the process actually works before you change it.'},
+  {c:'PHARR WAY — STEP',q:'The 5 Whys technique in STEP Evaluate helps you:',o:['List five responsible team members','Find the root cause by asking why five times','Identify five possible solutions','Celebrate five team successes'],a:1,w:'Ask "why did this happen?" five times. Each answer digs deeper until you reach the true root cause rather than just treating the symptom.'},
+  {c:'PHARR WAY — STEP',q:'A strong STEP Propose phase always includes:',o:['A vague improvement description','Measurable targets, timelines, ownership, and controls to sustain gains','A request for more budget','Only a list of what went wrong'],a:1,w:'P = Propose Solutions. Include measurable targets, timelines, responsible parties, and control measures so gains stick after implementation.'},
+  {c:'PHARR WAY — STEP',q:'A STEP Champion at City of Pharr is:',o:['An outside consultant','An employee who completes and implements a STEP submittal','The director who approves improvements','A Baldrige examiner from NIST'],a:1,w:'STEP Champions are Pharr employees at any level who identify a problem, work the STEP process, implement an improvement, and are recognized citywide.'},
+  {c:'PHARR WAY — STEP',q:'PASO is the Spanish equivalent of STEP. What does PASO stand for?',o:['Plan, Assess, Solve, Output','Piensa, Analiza, Soluciona, Ofrece','Proceso, Análisis, Sistema, Operación','Proponer, Actuar, Seguimiento, Obtener'],a:1,w:'PASO = Piensa en el Problema · Analiza el Proceso · Soluciona la Causa Raíz · Ofrece e Implementa Soluciones — the Spanish framework for Pharr\'s bilingual workforce.'},
+  {c:'PHARR WAY — STEP',q:'If a development permitting process has recurring delays, the Pharr Way response is:',o:['Hire more staff immediately','Blame the applicants','Initiate a STEP to find and fix the root cause','Wait for the annual audit'],a:2,w:'Recurring problems are exactly what STEP is designed for. Study it, track it, evaluate root cause, propose a structured fix — don\'t just react each time.'},
+  // PHARR WAY — KPI
+  {c:'PHARR WAY — KPI',q:'KYB at the City of Pharr stands for:',o:['Keep Your Budget','Know Your Business','Key Yield Benchmarks','Knowledge Yearly Breakdown'],a:1,w:'Know Your Business — every department should deeply understand its own performance data and use it to drive decisions.'},
+  {c:'PHARR WAY — KPI',q:'A gold-standard KPI requires:',o:['A target number only','Baseline, target, deadline, and a named data source','Director approval only','A budget allocation'],a:1,w:'Baseline + Target + Deadline + Data Source = Gold Standard KPI. Without all four, you cannot prove results are real or repeatable.'},
+  {c:'PHARR WAY — KPI',q:'Which is the best SMART KPI for a permitting department?',o:['Improve permit speed','Be faster on permits','Reduce commercial permit issuance time from 18 to 10 business days by Dec 31, 2025','Do better this year on permits'],a:2,w:'SMART = Specific, Measurable, Achievable, Relevant, Time-bound. Only the third option has a baseline, target, deadline, and implied data source.'},
+  {c:'PHARR WAY — KPI',q:'If a KPI is consistently red, the Pharr Way response is:',o:['Lower the target','Ignore it and celebrate the green ones','Initiate a STEP to find and fix the root cause','Switch to a different data source'],a:2,w:'Red KPIs are improvement signals. Launch a STEP, study the problem, close the gap — don\'t just change the target.'},
+  {c:'PHARR WAY — KPI',q:'A KPI baseline is:',o:['The minimum passing score','Current performance before improvement begins','The goal you want to reach','Your department budget'],a:1,w:'A baseline is your starting point — where you stand right now. Without it, you cannot prove that improvement actually happened.'},
+  {c:'PHARR WAY — KPI',q:'Top-decile benchmark performance means:',o:['Bottom 10%','Exactly at the national average','Better than 90% of comparable organizations','At the minimum acceptable standard'],a:2,w:'Top decile = 90th percentile. Pharr pursues top-decile benchmarks because we seek role-model performance, not average.'},
+  // PHARR WAY — BALDRIGE
+  {c:'PHARR WAY — BALDRIGE',q:'In the Baldrige process rubric, ADLI stands for:',o:['Approach, Data, Learning, Integration','Approach, Deployment, Learning, Integration','Analysis, Development, Leadership, Integration','Accountability, Discipline, Learning, Improvement'],a:1,w:'ADLI = Approach, Deployment, Learning, Integration — the four dimensions for evaluating how mature and systematic an organizational process is.'},
+  {c:'PHARR WAY — BALDRIGE',q:'In the Baldrige results rubric, LTCI stands for:',o:['Long-Term Continuous Improvement','Levels, Trends, Comparisons, Integration','Leadership, Training, Culture, Innovation','Lagging, Tracking, Comparing, Improving'],a:1,w:'LTCI = Levels, Trends, Comparisons, Integration — evaluates whether results are good, improving, competitive, and connected to priorities.'},
+  {c:'PHARR WAY — BALDRIGE',q:'Which Baldrige category asks about workforce engagement and development?',o:['Category 1: Leadership','Category 3: Customers','Category 5: Workforce','Category 6: Operations'],a:2,w:'Category 5 (Workforce) covers engagement, development, training, safety, and the culture that enables high performance.'},
+  // PHARR WAY — STRATEGY
+  {c:'PHARR WAY — STRATEGY',q:'Which strategic objective most directly covers development and infrastructure?',o:['Service Excellence','Economic Vitality','Safe & Secure Community','Infrastructure & Mobility'],a:3,w:'Infrastructure & Mobility covers roads, drainage, development services, public works, and the physical systems that keep the city running.'},
+  {c:'PHARR WAY — STRATEGY',q:"Pharr's vision is to consistently lead the region in:",o:['Economic output only','Population growth','Municipal excellence, sustainability, and innovation','Bridge and trade revenue'],a:2,w:"Pharr's vision drives every department — including Building & Code and Dev Services — to be a regional role model."},
+  {c:'PHARR WAY — STRATEGY',q:'WOW Stories at City of Pharr celebrate:',o:['Complaints resolved this month','Employees who go above and beyond for residents or teammates','City Commission accomplishments','Annual report highlights only'],a:1,w:'WOW Stories shine a light on employees living the Pharr Way — exceptional service, creative problem solving, and PRIDE values in action.'},
+  {c:'PHARR WAY — STRATEGY',q:'"When one team wins, we all win" reflects:',o:['Individual performance incentives','Interdepartmental budget competition','Collective accountability and collaboration across all City departments','Grant sharing requirements'],a:2,w:"Pharr's team-first culture — when one department succeeds, the whole city succeeds. The Pharr Way is citywide, not department-by-department."},
+  {c:'PHARR WAY - STRATEGY',q:'Which Pharr strategic objective guides sustainable city growth?',o:['Safe & Secure Community','Economic Vitality','Infrastructure & Mobility','Service Excellence'],a:2,w:'Infrastructure & Mobility ensures roads, drainage, utilities, and development keep pace with Pharr\'s growth in a sustainable, planned way.'}
+];
+
+// ── STATE ──
+var players=[],grid=[],currentPlayer=0,roundNum=1;
+var currentQ=null,timerInt=null,timerLeft=25;
+var waitBuild=false,waitFix=false,usedQs=[],builtCount=0,comboCount=0;
+var TOTAL_ROUNDS=20;
+
+// ── CANVAS ──
+var buildCanvas,buildCtx,particles=[],rafId=null;
+var gridRect=null;
+
+function Particle(x,y,type){
+  this.x=x;this.y=y;this.type=type;this.life=1;
+  if(type==='dust'){this.vx=(Math.random()-.5)*2;this.vy=-(Math.random()*1.5+.5);this.size=Math.floor(Math.random()*4+2);this.decay=.022;}
+  else if(type==='spark'){this.vx=(Math.random()-.5)*3;this.vy=-(Math.random()*3+1);this.size=2;this.decay=.03;}
+  else if(type==='confetti'){this.vx=(Math.random()-.5)*2.5;this.vy=-(Math.random()*2+.5);this.size=Math.floor(Math.random()*5+3);this.decay=.012;this.color=['#F5C518','#4CAF50','#42A5F5','#FF8F00','#FF5722'][Math.floor(Math.random()*5)];}
+}
+Particle.prototype.update=function(){
+  this.x+=this.vx;this.y+=this.vy;
+  if(this.type==='spark'||this.type==='confetti')this.vy+=.06;
+  this.life-=this.decay;
+};
+Particle.prototype.draw=function(c){
+  if(this.life<=0)return;
+  c.globalAlpha=this.life;
+  if(this.type==='dust'){c.fillStyle='#C4A020';}
+  else if(this.type==='spark'){c.fillStyle='#FFEE00';}
+  else{c.fillStyle=this.color||'#F5C518';}
+  c.fillRect(Math.floor(this.x),Math.floor(this.y),this.size,this.size);
+  c.globalAlpha=1;
+};
+
+function spawnBuildParticles(tileIdx){
+  var tile=document.getElementById('t'+tileIdx);
+  if(!tile||!buildCanvas)return;
+  var r=tile.getBoundingClientRect();
+  var cr=buildCanvas.getBoundingClientRect();
+  var cx=r.left-cr.left+r.width/2;
+  var cy=r.top-cr.top+r.height/2;
+  for(var i=0;i<18;i++)particles.push(new Particle(cx+(Math.random()-.5)*r.width*.4,cy,'dust'));
+  for(var j=0;j<10;j++)particles.push(new Particle(cx+(Math.random()-.5)*r.width*.3,cy,'spark'));
+  for(var k=0;k<20;k++)particles.push(new Particle(cx+(Math.random()-.5)*r.width*.5,cy,'confetti'));
+}
+
+function initCanvas(){
+  buildCanvas=document.getElementById('build-canvas');
+  buildCtx=buildCanvas.getContext('2d');
+  resizeCanvas();
+  window.addEventListener('resize',resizeCanvas);
+  if(rafId)cancelAnimationFrame(rafId);
+  particles=[];animLoop();
+}
+function resizeCanvas(){
+  var wrap=document.getElementById('city-grid');
+  if(!wrap)return;
+  var r=wrap.getBoundingClientRect();
+  var parent=wrap.parentElement;
+  var pr=parent.getBoundingClientRect();
+  buildCanvas.width=Math.floor(pr.width);
+  buildCanvas.height=Math.floor(pr.height);
+  buildCanvas.style.width=pr.width+'px';
+  buildCanvas.style.height=pr.height+'px';
+  buildCanvas.style.top='0';buildCanvas.style.left='0';
+  gridRect=r;
+}
+function animLoop(){
+  if(!buildCtx)return;
+  buildCtx.clearRect(0,0,buildCanvas.width,buildCanvas.height);
+  particles=particles.filter(function(p){p.update();if(p.life>0){p.draw(buildCtx);return true;}return false;});
+  rafId=requestAnimationFrame(animLoop);
+}
+
+// ── VFX ──
+function flashScreen(color,alpha){
+  var f=document.getElementById('screen-flash');f.style.background=color;f.style.opacity=alpha||'.2';
+  setTimeout(function(){f.style.opacity='0';},140);
+}
+function shakeGame(){
+  var g=document.getElementById('s-game');g.style.animation='screenShake .28s ease-out';
+  setTimeout(function(){g.style.animation='';},300);
+}
+function spawnFloatScore(tileIdx,pts,color){
+  var tile=document.getElementById('t'+tileIdx);if(!tile)return;
+  var r=tile.getBoundingClientRect();
+  var div=document.createElement('div');
+  div.style.cssText='position:fixed;left:'+( r.left+r.width/2)+'px;top:'+r.top+'px;transform:translateX(-50%);font-family:"Press Start 2P",monospace;font-size:10px;color:'+(color||'#F5C518')+';z-index:1001;pointer-events:none;text-shadow:0 0 8px currentColor;animation:floatScore .9s ease-out forwards;';
+  div.textContent='+'+pts;
+  document.body.appendChild(div);
+  setTimeout(function(){if(div.parentNode)div.parentNode.removeChild(div);},950);
+}
+function showComboPopup(){
+  var labels={2:'COMBO x1.5!',3:'COMBO x2!',5:'MAX COMBO!'};
+  if(!labels[comboCount])return;
+  var pop=document.createElement('div');
+  pop.style.cssText='position:fixed;left:50%;top:32%;font-family:"Press Start 2P",monospace;font-size:clamp(12px,3vw,20px);color:#F5C518;text-shadow:0 0 20px #F5C518;z-index:1002;pointer-events:none;animation:comboZap .48s ease-out;';
+  pop.textContent=labels[comboCount];
+  document.body.appendChild(pop);
+  setTimeout(function(){if(pop.parentNode)pop.parentNode.removeChild(pop);},500);
+}
+
+// ── HELPERS ──
+function el(id){return document.getElementById(id);}
+function showScreen(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});el(id).classList.add('active');}
+function shuffle(a){var b=a.slice();for(var i=b.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=b[i];b[i]=b[j];b[j]=t;}return b;}
+function builtCount_(){return grid.filter(function(g){return g.state==='built';}).length;}
+function taggedCount(){return grid.filter(function(g){return g.state==='tagged';}).length;}
+function emptyCount(){return grid.filter(function(g){return g.state==='empty';}).length;}
+function getMult(){return comboCount>=5?3:comboCount>=3?2:comboCount>=2?1.5:1;}
+
+// ── START ──
+function startGame(){
+  players=CHARS.map(function(c,i){
+    var inp=el('pname-'+i);
+    return{idx:i,name:(inp&&inp.value.trim())||c.n,e:c.e,color:c.color,score:0,built:0,correct:0,wrong:0};
+  });
+  // shuffle building assignment order
+  BUILD_ORDER=shuffle(BLDS.map(function(_,i){return i;}));
+  grid=BLDS.map(function(){return{state:'empty',bldIdx:-1};});
+  currentPlayer=0;roundNum=1;usedQs=[];builtCount=0;comboCount=0;
+  showScreen('s-game');
+  setTimeout(function(){
+    initCanvas();buildGrid();renderHud();updateProgress();
+    setTimeout(function(){resizeCanvas();loadQ();},120);
+  },80);
+}
+
+// ── GRID ──
+function buildGrid(){
+  var g=el('city-grid');g.innerHTML='';
+  grid.forEach(function(cell,i){
+    var div=document.createElement('div');
+    var bld=cell.bldIdx>=0?BLDS[cell.bldIdx]:null;
+    var cls='city-tile '+cell.state;
+    if((cell.state==='empty'&&waitBuild)||(cell.state==='tagged'&&waitFix))cls+=' clickable';
+    div.className=cls;div.id='t'+i;
+    var inner='';
+    if(bld){
+      inner+=(bld.vip?'<div class="tile-vip">⭐</div>':'');
+      inner+=(cell.state==='tagged'?'<div class="tile-tag">🚫</div>':cell.state==='built'?'<div class="tile-check">✅</div>':'');
+      inner+='<span class="tile-icon">'+bld.e+'</span>';
+      inner+='<span class="tile-name">'+bld.n+'</span>';
+    }
+    div.innerHTML=inner;
+    if(cell.state==='empty'&&waitBuild){
+      (function(idx){div.onclick=function(){clickTile(idx);};})(i);
+    }
+    if(cell.state==='tagged'&&waitFix){
+      (function(idx){div.onclick=function(){fixTile(idx);};})(i);
+    }
+    g.appendChild(div);
+  });
+}
+
+function clickTile(idx){
+  if(!waitBuild||grid[idx].state!=='empty')return;
+  waitBuild=false;
+  el('build-prompt').className='build-prompt';
+  // assign next building
+  var nextBld=BUILD_ORDER[builtCount];
+  grid[idx].state='constructing';
+  grid[idx].bldIdx=nextBld;
+  buildGrid();
+  // construction delay then built
+  setTimeout(function(){
+    var bld=BLDS[nextBld];
+    grid[idx].state='built';
+    builtCount++;
+    var vip=bld.vip;
+    var pts=vip?150:100;
+    players[currentPlayer].score+=pts;
+    players[currentPlayer].built++;
+    spawnBuildParticles(idx);
+    flashScreen('#4CAF50','.12');
+    spawnFloatScore(idx,pts,vip?'#F5C518':'#4CAF50');
+    buildGrid();
+    updateProgress();
+    renderHud();
+    var tile=el('t'+idx);
+    if(tile){tile.classList.add('just-built');setTimeout(function(){tile.classList.remove('just-built');},550);}
+    if(builtCount>=20){setTimeout(function(){endGame(true);},600);return;}
+    el('next-wrap').className='next-wrap show';
+  },800);
+}
+
+function fixTile(idx){
+  if(!waitFix||grid[idx].state!=='tagged')return;
+  waitFix=false;
+  el('fix-prompt').className='fix-prompt';
+  grid[idx].state='built';
+  var pts=50;
+  players[currentPlayer].score+=pts;
+  spawnBuildParticles(idx);
+  flashScreen('#FF8F00','.1');
+  spawnFloatScore(idx,pts,'#FF8F00');
+  buildGrid();renderHud();
+  el('next-wrap').className='next-wrap show';
+}
+
+function updateProgress(){
+  var pct=Math.round(builtCount/20*100);
+  el('progress-fill').style.width=pct+'%';
+  el('progress-label').textContent=builtCount+' / 20 BUILT';
+  el('built-badge').textContent='🏗️ '+builtCount+'/20';
+}
+
+// ── HUD ──
+function renderHud(){
+  var bar=el('hud-scores');bar.innerHTML='';
+  players.forEach(function(p,i){
+    var div=document.createElement('div');
+    div.className='hs'+(i===currentPlayer?' active':'');
+    div.style.borderColor=p.color+(i===currentPlayer?'':'3A');
+    div.innerHTML='<div class="hs-em">'+p.e+'</div><div class="hs-nm" style="color:'+p.color+'">'+p.name+'</div><div class="hs-pt" style="color:'+p.color+'">'+p.score+'</div>';
+    bar.appendChild(div);
+  });
+  el('round-badge').textContent='R'+roundNum+'/'+TOTAL_ROUNDS;
+}
+
+// ── QUESTION ──
+function loadQ(){
+  waitBuild=false;waitFix=false;
+  el('feedback-box').className='feedback-box';
+  el('build-prompt').className='build-prompt';
+  el('fix-prompt').className='fix-prompt';
+  el('next-wrap').className='next-wrap';
+  var p=players[currentPlayer];
+  var banner=el('cp-banner');
+  banner.style.borderColor=p.color+'55';banner.style.background='rgba(0,0,0,.25)';
+  banner.innerHTML='<div class="cp-em">'+p.e+'</div><div><div class="cp-nm" style="color:'+p.color+'">'+p.name+'</div><div class="cp-role">'+CHARS[p.idx].role+'</div></div>';
+  var avail=QS.filter(function(_,i){return usedQs.indexOf(i)<0;});
+  if(!avail.length){usedQs=[];avail=QS.slice();}
+  var pick=avail[Math.floor(Math.random()*Math.min(avail.length,10))];
+  currentQ=pick;usedQs.push(QS.indexOf(pick));
+  el('q-cat').textContent=pick.c;el('q-text').textContent=pick.q;
+  var letters=['A','B','C','D'];
+  var og=el('opts-grid');og.innerHTML='';
+  pick.o.forEach(function(opt,i){
+    var btn=document.createElement('button');btn.className='opt-btn';
+    btn.innerHTML='<span class="opt-letter">'+letters[i]+'</span>'+opt;
+    (function(idx){btn.onclick=function(){answerQ(idx);};})(i);
+    og.appendChild(btn);
+  });
+  startTimer();
+}
+
+function startTimer(){
+  clearInterval(timerInt);timerLeft=25;
+  var fill=el('timer-fill'),num=el('timer-num');
+  fill.style.transition='none';fill.style.width='100%';fill.style.background='#00E676';
+  void fill.offsetWidth;
+  fill.style.transition='width 25s linear';fill.style.width='0%';
+  timerInt=setInterval(function(){
+    timerLeft--;num.textContent=timerLeft;
+    if(timerLeft<=10)fill.style.background='#FF1744';
+    else if(timerLeft<=18)fill.style.background='#FF8F00';
+    if(timerLeft<=0){clearInterval(timerInt);timeUp();}
+  },1000);
+}
+function stopTimer(){clearInterval(timerInt);el('timer-fill').style.transition='none';}
+
+function timeUp(){
+  var btns=el('opts-grid').querySelectorAll('.opt-btn');
+  btns.forEach(function(b,i){b.disabled=true;if(i===currentQ.a)b.classList.add('correct');});
+  players[currentPlayer].wrong++;comboCount=0;el('combo-d').className='combo-d';
+  redTagBuilding();
+  el('feedback-box').className='feedback-box no show';
+  el('feedback-box').innerHTML='<strong>TIME UP!</strong>'+currentQ.w;
+  flashScreen('#FF1744','.15');shakeGame();
+  buildGrid();renderHud();
+  el('next-wrap').className='next-wrap show';
+}
+
+function answerQ(idx){
+  stopTimer();
+  var btns=el('opts-grid').querySelectorAll('.opt-btn');
+  btns.forEach(function(b){b.disabled=true;});
+  var speed=timerLeft;
+  var base=speed>=20?150:speed>=14?125:speed>=8?100:75;
+  var mult=getMult();
+  if(idx===currentQ.a){
+    btns[idx].classList.add('correct');
+    comboCount++;
+    var pts=Math.round(base*mult);
+    players[currentPlayer].score+=pts;players[currentPlayer].correct++;
+    el('feedback-box').className='feedback-box ok show';
+    el('feedback-box').innerHTML='<strong>APPROVED! +'+pts+' PTS'+(mult>1?' ('+mult.toFixed(1).replace('.0','')+'x!)':'')+' </strong>'+currentQ.w;
+    flashScreen('#4CAF50','.12');
+    showComboPopup();
+    var cd=el('combo-d');
+    cd.textContent='x'+mult.toFixed(1).replace('.0','');
+    cd.className='combo-d'+(mult>1?' show':'');
+    // check if tagged buildings need fixing first
+    if(taggedCount()>0){
+      waitFix=true;
+      el('fix-prompt').className='fix-prompt show';
+      buildGrid();
+    } else if(emptyCount()>0){
+      waitBuild=true;
+      el('build-prompt').className='build-prompt show';
+      buildGrid();
+    } else {
+      el('next-wrap').className='next-wrap show';
+    }
+  } else {
+    btns[idx].classList.add('wrong');btns[currentQ.a].classList.add('correct');
+    players[currentPlayer].wrong++;comboCount=0;el('combo-d').className='combo-d';
+    redTagBuilding();
+    el('feedback-box').className='feedback-box no show';
+    el('feedback-box').innerHTML='<strong>VIOLATION!</strong>Correct: "'+currentQ.o[currentQ.a]+'" — '+currentQ.w;
+    flashScreen('#FF1744','.15');shakeGame();
+    buildGrid();renderHud();
+    el('next-wrap').className='next-wrap show';
+  }
+  renderHud();
+}
+
+function redTagBuilding(){
+  // tag a random built building
+  var built=grid.filter(function(g){return g.state==='built';});
+  if(!built.length)return;
+  var pick=built[Math.floor(Math.random()*built.length)];
+  pick.state='tagged';
+}
+
+function nextTurn(){
+  currentPlayer=(currentPlayer+1)%4;roundNum++;
+  if(roundNum>TOTAL_ROUNDS){endGame(false);return;}
+  buildGrid();renderHud();loadQ();
+}
+
+// ── END ──
+function endGame(won){
+  if(rafId){cancelAnimationFrame(rafId);rafId=null;}
+  var sorted=players.slice().sort(function(a,b){return b.score-a.score;});
+  var hl=el('r-headline');
+  hl.textContent=won?'CITY COMPLETE!':'KEEP BUILDING!';
+  hl.className='r-headline '+(won?'win':'lose');
+  el('r-sub').textContent=won?'Outstanding work — all 20 City Hall departments built! Pharr is growing!':'20 rounds down. Keep going — Excellence Every Day, City of Pharr!';
+  var bclasses=['p1','p2','p3','p4'],lbls=['1st','2nd','3rd','4th'];
+  var html='';
+  sorted.forEach(function(p,i){
+    html+='<div class="pod"><div class="pod-em">'+p.e+'</div><div class="pod-nm" style="color:'+p.color+'">'+p.name+'</div><div class="pod-sc">'+p.score+' pts</div><div class="pod-blk '+bclasses[i]+'">'+lbls[i]+'</div></div>';
+  });
+  el('r-podium').innerHTML=html;
+  var allC=players.reduce(function(s,p){return s+p.correct;},0);
+  var allW=players.reduce(function(s,p){return s+p.wrong;},0);
+  var pct=allC+allW>0?Math.round(allC/(allC+allW)*100):0;
+  el('r-stats').innerHTML=
+    '<div class="stat-px"><span class="stat-val">'+builtCount+'</span><span class="stat-lbl">Built</span></div>'+
+    '<div class="stat-px"><span class="stat-val">'+taggedCount()+'</span><span class="stat-lbl">Red-Tagged</span></div>'+
+    '<div class="stat-px"><span class="stat-val">'+pct+'%</span><span class="stat-lbl">Accuracy</span></div>'+
+    '<div class="stat-px"><span class="stat-val" style="font-size:11px">'+sorted[0].name+'</span><span class="stat-lbl">Top Builder</span></div>';
+  showScreen('s-result');
+}
+function goTitle(){if(rafId){cancelAnimationFrame(rafId);rafId=null;}showScreen('s-title');}
+</script>
+</body>
+</html>
